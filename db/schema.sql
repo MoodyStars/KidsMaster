@@ -1,0 +1,73 @@
+```sql
+-- Simple schema for KidsMaster scaffold (MySQL)
+CREATE DATABASE IF NOT EXISTS kidsmaster CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+USE kidsmaster;
+
+CREATE TABLE users (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  username VARCHAR(100) UNIQUE,
+  email VARCHAR(255),
+  password_hash VARCHAR(255),
+  avatar VARCHAR(255),
+  last_seen DATETIME,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE channels (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  owner_id INT,
+  name VARCHAR(150),
+  description TEXT,
+  banner VARCHAR(255),
+  subscribers INT DEFAULT 0,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (owner_id) REFERENCES users(id) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE media (
+  id BIGINT AUTO_INCREMENT PRIMARY KEY,
+  channel_id INT,
+  title VARCHAR(255),
+  description TEXT,
+  type VARCHAR(50),
+  category VARCHAR(150),
+  tags VARCHAR(255),
+  thumbnail VARCHAR(255),
+  file_url VARCHAR(1024),
+  mime VARCHAR(100),
+  duration VARCHAR(50),
+  views INT DEFAULT 0,
+  featured TINYINT(1) DEFAULT 0,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  FOREIGN KEY (channel_id) REFERENCES channels(id) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE comments (
+  id BIGINT AUTO_INCREMENT PRIMARY KEY,
+  media_id BIGINT,
+  user_id INT,
+  author VARCHAR(150),
+  body TEXT,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (media_id) REFERENCES media(id) ON DELETE CASCADE,
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE chat_messages (
+  id BIGINT AUTO_INCREMENT PRIMARY KEY,
+  media_id BIGINT,
+  user_id INT,
+  user_name VARCHAR(150),
+  message VARCHAR(1000),
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE storage_files (
+  id BIGINT AUTO_INCREMENT PRIMARY KEY,
+  owner_id INT,
+  file_name VARCHAR(255),
+  path VARCHAR(1024),
+  size BIGINT,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
