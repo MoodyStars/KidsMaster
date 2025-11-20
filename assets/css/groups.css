@@ -1,0 +1,5 @@
+/* groups and contact small styles */
+.groups-grid { display:grid; grid-template-columns: repeat(auto-fit,minmax(260px,1fr)); gap:12px; }
+#joinBtn { background:var(--accent); color:#fff; padding:8px 12px; border-radius:6px; border:none; }
+#createGroupForm input, #createGroupForm textarea { width:100%; padding:8px; margin:6px 0; border-radius:6px; border:1px solid #ddd; }
+#contactForm input, #contactForm textarea { width:100%; padding:8px; margin:6px 0; border-radius:6px; border:1px solid #ddd; }

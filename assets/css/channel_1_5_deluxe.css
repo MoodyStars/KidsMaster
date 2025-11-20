@@ -1,0 +1,16 @@
+/* Channel 1.5 Deluxe - UI theme CSS (pfp, gif banner, chat styling, flags, emoji) */
+.channel-header { position:relative; background:#f6f8fb; border-radius:8px; overflow:hidden; }
+.channel-banner { width:100%; height:220px; object-fit:cover; display:block; }
+.channel-meta { display:flex; gap:16px; padding:14px; align-items:center; }
+.channel-avatar { width:96px; height:96px; border-radius:50%; border:4px solid #fff; object-fit:cover; background:#eee; }
+.channel-actions { margin-left:auto; display:flex; gap:8px; align-items:center; }
+.btn { background:#ff6b6b; color:#fff; padding:8px 12px; border-radius:6px; text-decoration:none; border:none; cursor:pointer; }
+.btn.ghost { background:transparent; color:#ff6b6b; border:1px solid #ff6b6b; }
+.chat-panel { background:#fff; border-radius:8px; padding:8px; box-shadow:0 4px 12px rgba(0,0,0,0.04); }
+.chat-window { height:320px; overflow:auto; padding:8px; background:linear-gradient(#fafafa,#f6f9fd); border-radius:6px; }
+.chat-line { display:flex; gap:8px; margin:8px 0; }
+.chat-avatar { width:44px; height:44px; border-radius:50%; object-fit:cover; }
+.chat-flag { margin-left:8px; font-size:18px; vertical-align:middle; }
+.emoji-btn { border:none; background:transparent; font-size:18px; cursor:pointer; }
+.channel-controls .input { padding:8px; width:100%; border-radius:6px; border:1px solid #e6eef9; }
+.notice { background:#e9f7ef; border:1px solid #d2f0d9; padding:8px; border-radius:6px; }

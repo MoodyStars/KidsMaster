@@ -1,0 +1,19 @@
+[Unit]
+Description=KidsMaster Worker (encoding_jobs processor)
+After=network.target
+
+[Service]
+Type=simple
+User=www-data
+Group=www-data
+WorkingDirectory=/var/www/kidsmaster
+ExecStart=/usr/bin/php /var/www/kidsmaster/workers/worker.php
+Restart=always
+RestartSec=5
+TimeoutStartSec=120
+StandardOutput=syslog
+StandardError=syslog
+SyslogIdentifier=kidsmaster-worker
+
+[Install]
+WantedBy=multi-user.target

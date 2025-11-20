@@ -1,104 +1,92 @@
 <?php
-session_start();
-require_once __DIR__ . '/api.php';
-$id = $_GET['id'] ?? null;
-if (!$id) { header('Location: index.php'); exit; }
+// watch.php (updated): integrates live stream preview, reddit embed, threaded comments and analytics hooks.
+require_once __DIR__ . '/_includes/init.php';
+require_once __DIR__ . '/_includes/header.php';
+$id = (int)($_GET['id'] ?? 0);
+if (!$id) { header('Location: /'); exit; }
+$pdo = km_db();
+$media = $pdo->prepare("SELECT m.*, c.name as channel_name, c.id as channel_id FROM media m LEFT JOIN channels c ON m.channel_id = c.id WHERE m.id = :id LIMIT 1");
+$media->execute([':id'=>$id]); $m = $media->fetch();
+if (!$m) { echo '<div class="panel">Media not found</div>'; require_once __DIR__ . '/_includes/footer.php'; exit; }
 
-$media = api_get_media($id);
-$related = api_list_media(['type' => $media['type'] ?? 'video', 'limit' => 6, 'category' => $media['category'] ?? null]);
-$comments = api_get_comments($id, 0, 50);
+// fetch live for channel
+$live = $pdo->prepare("SELECT * FROM live_streams WHERE channel_id = :cid AND status = 'live' LIMIT 1");
+$live->execute([':cid'=>$m['channel_id']]); $liveRow = $live->fetch();
+
+// fetch reddit embed if configured
+$red = $pdo->prepare("SELECT reddit_subreddit, reddit_thread_url FROM reddit_integrations WHERE channel_id = :cid ORDER BY id DESC LIMIT 1");
+$red->execute([':cid'=>$m['channel_id']]); $redRow = $red->fetch();
+
+// comments (threaded)
+$comments = $pdo->prepare("SELECT * FROM comments WHERE media_id = :mid ORDER BY created_at ASC");
+$comments->execute([':mid'=>$id]); $commentsList = $comments->fetchAll();
 
 ?>
-<!doctype html>
-<html>
-<head>
-  <meta charset="utf-8" />
-  <title><?=htmlspecialchars($media['title'] ?? 'Play')?> — KidsMaster</title>
-  <link rel="stylesheet" href="assets/css/style.css" />
-  <script defer src="assets/js/main.js"></script>
-</head>
-<body class="km-body">
-  <header class="km-header"><div class="km-brand"><a href="index.php">KidsMaster</a></div></header>
+<section class="panel">
+  <div class="player-col">
+    <?php if ($liveRow): ?>
+      <div class="panel notice">
+        <strong>Live Now:</strong> <?= km_esc($liveRow['title']) ?>
+        <?php if (!empty($liveRow['hls_url'])): ?>
+          <video controls autoplay src="<?= km_esc($liveRow['hls_url'])?>" style="width:100%"></video>
+        <?php else: ?>
+          <div>RTMP key: <code><?= km_esc($liveRow['rtmp_key']) ?></code> — configure your encoder.</div>
+        <?php endif; ?>
+      </div>
+    <?php endif; ?>
 
-  <main class="watch-page">
-    <div class="player-col">
-      <?php if (($media['type'] ?? '') === 'video'): ?>
-        <video id="player" controls poster="<?=htmlspecialchars($media['thumbnail'])?>" width="800">
-          <source src="<?=htmlspecialchars($media['file_url'])?>" type="<?=htmlspecialchars($media['mime'] ?? 'video/mp4')?>">
-          Your browser does not support HTML5 video.
-        </video>
-      <?php elseif (($media['type'] ?? '') === 'audio'): ?>
-        <audio controls src="<?=htmlspecialchars($media['file_url'])?>"></audio>
+    <?php if ($m['type'] === 'video'): ?>
+      <video id="player" controls poster="<?= km_esc($m['thumbnail'])?>" style="width:100%"><source src="<?= km_esc($m['file_url'])?>" type="<?= km_esc($m['mime'] ?: 'video/mp4') ?>"></video>
+    <?php elseif ($m['type'] === 'audio'): ?>
+      <audio controls src="<?= km_esc($m['file_url']) ?>"></audio>
+    <?php else: ?>
+      <img src="<?= km_esc($m['file_url']) ?>" alt="<?= km_esc($m['title'])?>" style="max-width:100%;">
+    <?php endif; ?>
+
+    <h1><?= km_esc($m['title']) ?></h1>
+    <div class="meta"><?= (int)$m['views'] ?> views • uploaded by <a href="/channel.php?id=<?= (int)$m['channel_id'] ?>"><?= km_esc($m['channel_name']) ?></a></div>
+
+    <div class="panel comments">
+      <h3>Comments</h3>
+      <?php if (km_current_user()): ?>
+        <form id="commentForm" onsubmit="return postComment(event, <?= $id ?>)">
+          <?= km_csrf_field() ?>
+          <textarea id="commentText" required></textarea><br>
+          <button class="btn" type="submit">Post Comment</button>
+          <button class="btn ghost" type="button" onclick="openEmoji()">😊</button>
+        </form>
       <?php else: ?>
-        <img src="<?=htmlspecialchars($media['file_url'])?>" alt="<?=htmlspecialchars($media['title'])?>" />
+        <p><a href="/login.php">Log in</a> to comment.</p>
       <?php endif; ?>
 
-      <h1><?=htmlspecialchars($media['title'])?></h1>
-      <div class="meta">
-        <strong><?=htmlspecialchars($media['views'])?></strong> views • uploaded by <a href="channel.php?id=<?=htmlspecialchars($media['channel_id'])?>"><?=htmlspecialchars($media['channel_name'])?></a>
+      <div id="commentsList">
+        <?php
+        // simple flat render (hierarchy can be built client-side)
+        foreach ($commentsList as $c) {
+            if ($c['is_deleted']) { echo '<div class="comment">[deleted]</div>'; continue; }
+            echo '<div class="comment"><div class="avatar">'.km_esc(substr($c['author'],0,1)).'</div><div class="cbody"><strong>'.km_esc($c['author']).'</strong> <small>'.km_esc($c['created_at']).'</small><div>'.nl2br(km_esc($c['body'])).'</div></div></div>';
+        }
+        ?>
       </div>
-
-      <div class="actions">
-        <button onclick="toggleLike(<?=json_encode($media['id'])?>)">Like</button>
-        <button onclick="subscribe(<?=json_encode($media['channel_id'])?>)">Subscribe</button>
-        <button onclick="openShare()">Share</button>
-      </div>
-
-      <section class="comments">
-        <h3>Comments</h3>
-        <?php if (isset($_SESSION['user'])): ?>
-          <form onsubmit="postComment(event, <?=json_encode($media['id'])?>)">
-            <textarea id="commentText" placeholder="Add a comment..." required></textarea>
-            <div class="comment-controls">
-              <button type="button" onclick="openEmojiPicker()">😊</button>
-              <select id="countryFlag">
-                <option value="us">🇺🇸</option>
-                <option value="gb">🇬🇧</option>
-                <option value="sa">🇸🇦</option>
-                <option value="eg">🇪🇬</option>
-                <option value="in">🇮🇳</option>
-              </select>
-              <button type="submit">Post Comment</button>
-            </div>
-          </form>
-        <?php else: ?>
-          <p><a href="login.php">Log in</a> to comment.</p>
-        <?php endif; ?>
-
-        <div id="commentsList">
-          <?php foreach ($comments as $c): ?>
-            <div class="comment">
-              <div class="avatar"><?=htmlspecialchars(substr($c['author'],0,1))?></div>
-              <div class="cbody">
-                <div class="chead"><strong><?=htmlspecialchars($c['author'])?></strong> <small><?=htmlspecialchars($c['created_at'])?></small></div>
-                <div class="ctext"><?=nl2br(htmlspecialchars($c['body']))?></div>
-              </div>
-            </div>
-          <?php endforeach; ?>
-        </div>
-      </section>
     </div>
+  </div>
 
-    <aside class="side-col">
-      <div class="chat-panel">
-        <h4>Live Chat</h4>
-        <div id="chatWindow" class="chat-window"></div>
-        <form id="chatForm" onsubmit="return false;">
-          <input id="chatMsg" placeholder="Send a message..." />
-          <select id="chatEmojiPicker"><option>😊</option><option>👍</option><option>🔥</option></select>
-          <button onclick="sendChat(<?=json_encode($media['id'])?>)">Send</button>
-        </form>
-      </div>
+  <aside class="side-col">
+    <div class="panel">
+      <h4>Reddit Chat</h4>
+      <?php if ($redRow): ?>
+        <p><a href="<?= km_esc($redRow['reddit_thread_url'] ?: 'https://www.reddit.com/r/'.rawurlencode($redRow['reddit_subreddit'])) ?>" target="_blank">Open Reddit</a></p>
+        <iframe src="<?= km_esc($redRow['reddit_thread_url'] ?: 'https://www.reddit.com/r/'.rawurlencode($redRow['reddit_subreddit'])) ?>" style="width:100%;height:300px;border:0"></iframe>
+      <?php else: ?>
+        <p>No reddit linked. <a href="/reddit_oauth.php?channel_id=<?= (int)$m['channel_id'] ?>">Link Reddit</a></p>
+      <?php endif; ?>
+    </div>
+  </aside>
+</section>
 
-      <div class="panel">
-        <h4>Related</h4>
-        <ul class="related">
-          <?php foreach($related as $r): ?>
-            <li><a href="watch.php?id=<?=htmlspecialchars($r['id'])?>"><?=htmlspecialchars($r['title'])?></a></li>
-          <?php endforeach; ?>
-        </ul>
-      </div>
-    </aside>
-  </main>
-</body>
-</html>
+<script>
+  // simple analytic fire on page load
+  (function(){ fetch('/analytics.php?action=record_view', { method:'POST', body: new URLSearchParams({media_id: '<?= $id ?>'}) }); })();
+</script>
+
+<?php require_once __DIR__ . '/_includes/footer.php'; ?>

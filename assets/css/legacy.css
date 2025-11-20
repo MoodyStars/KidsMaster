@@ -1,0 +1,34 @@
+/* assets/css/legacy.css
+   CSS fallbacks for older browsers (no grid, limited flex support, avoid advanced selectors).
+   Designed to be included conditionally for IE7-11 and older browsers.
+*/
+
+body { font-family: Arial, Helvetica, sans-serif; background:#f6f8fb; color:#222; }
+.container { width: 960px; margin: 0 auto; padding: 10px; }
+.header, .footer { background:#123a8a; color:#fff; padding:10px; }
+.nav { background:#eef3ff; padding:8px; }
+.nav a { display:inline-block; padding:6px 8px; margin-right:6px; text-decoration:none; color:#0b2f6f; border:1px solid #dfeaff; background:#fff; }
+.columns { zoom:1; } /* contains floats in old IE */
+.left { float:left; width:200px; margin-right:12px; }
+.center { float:left; width:520px; margin-right:12px; }
+.right { float:left; width:200px; }
+.panel { background:#fff; padding:10px; margin-bottom:12px; border:1px solid #e6eef9; }
+.thumb { display:block; margin-bottom:8px; }
+.thumb img { width:100%; height:auto; display:block; }
+
+/* simple responsive fallback using max-width media query (IE8 ignores it) */
+@media only screen and (max-width: 700px) {
+  .container { width: auto; padding:6px; }
+  .left, .center, .right { float:none; width:auto; margin-right:0; }
+}
+
+/* simple button fallback */
+.btn { display:inline-block; padding:6px 10px; background:#ff6b6b; color:#fff; text-decoration:none; border-radius:3px; border:1px solid #ff4b4b; }
+
+/* Chat simple styles */
+.chat-window { background:#fafafa; border:1px solid #eee; padding:6px; height:240px; overflow:auto; }
+.chat-line { margin-bottom:8px; }
+.chat-avatar { width:36px; height:36px; display:inline-block; vertical-align:top; margin-right:6px; background:#ddd; }
+
+/* ensure legacy pages don't use rem/em that vary */
+html, body { font-size: 14px; }

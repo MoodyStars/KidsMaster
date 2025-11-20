@@ -1,0 +1,60 @@
+{
+  "info": {
+    "name": "KidsMaster AJAX API",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Toggle Privacy",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/x-www-form-urlencoded" }
+        ],
+        "body": {
+          "mode": "urlencoded",
+          "urlencoded": [
+            { "key": "action", "value": "toggle_privacy" },
+            { "key": "media_id", "value": "123" },
+            { "key": "_csrf", "value": "{{csrf_token}}" }
+          ]
+        },
+        "url": { "raw": "{{base_url}}/ajax/media_api.php" }
+      }
+    },
+    {
+      "name": "Enqueue HLS",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/x-www-form-urlencoded" }],
+        "body": {
+          "mode": "urlencoded",
+          "urlencoded": [
+            { "key": "action", "value": "enqueue_hls" },
+            { "key": "media_id", "value": "123" },
+            { "key": "_csrf", "value": "{{csrf_token}}" }
+          ]
+        },
+        "url": { "raw": "{{base_url}}/ajax/media_api.php" }
+      }
+    },
+    {
+      "name": "Trim Video",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/x-www-form-urlencoded" }],
+        "body": {
+          "mode": "urlencoded",
+          "urlencoded": [
+            { "key": "action", "value": "trim" },
+            { "key": "media_id", "value": "123" },
+            { "key": "start", "value": "10" },
+            { "key": "end", "value": "30" },
+            { "key": "_csrf", "value": "{{csrf_token}}" }
+          ]
+        },
+        "url": { "raw": "{{base_url}}/ajax/editor_api.php" }
+      }
+    }
+  ]
+}

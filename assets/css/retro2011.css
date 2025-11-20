@@ -1,0 +1,142 @@
+/* KidsMaster — 2011 remake theme with 2025 reveal upgrades
+   Inspired by Wenoo, VidLii, ZippCast, KidsTube — retro boxed layout, bold colors,
+   and an optional "2025 reveal" mode that modernizes spacing, font-size and mobile behavior.
+*/
+
+/* Theme variables */
+:root{
+  --bg:#f0f4fb;
+  --panel:#ffffff;
+  --nav:#0b2f6f;
+  --accent:#ff6b6b;
+  --muted:#6c7986;
+  --retro-accent:#ffc107;
+  --tile:#e6eef9;
+  --shadow: rgba(11,47,111,0.08);
+  --glass: rgba(255,255,255,0.6);
+  --max-width:1150px;
+}
+
+/* Classic boxed wrapper */
+.km-retro-wrap {
+  background: linear-gradient(180deg, var(--bg), #e9f0fb);
+  min-height:100vh;
+  padding:18px 0;
+  font-family: "Helvetica Neue", Arial, "Lucida Grande", sans-serif;
+  color:#222;
+}
+.km-retro-container {
+  width:100%;
+  max-width:var(--max-width);
+  margin:0 auto;
+  box-shadow:0 6px 18px var(--shadow);
+  background: repeating-linear-gradient(45deg, rgba(255,255,255,0.02) 0 2px, transparent 2px 6px);
+  border-radius:8px;
+  overflow:hidden;
+}
+
+/* Header inspired by 2011 layouts */
+.km-retro-header {
+  background: linear-gradient(0deg,#0b2f6f 0%, #123a8a 100%);
+  color:#fff;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  padding:14px 22px;
+  border-bottom:4px solid rgba(255,255,255,0.06);
+}
+.km-retro-brand {
+  display:flex;
+  align-items:center;
+  gap:12px;
+}
+.km-retro-brand .logo {
+  width:48px;
+  height:48px;
+  background: radial-gradient(circle at 30% 20%, #ffd88a, #ff8a8a);
+  border-radius:6px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-weight:700;
+  color:#1b2a44;
+  box-shadow:0 2px 6px rgba(0,0,0,0.12) inset;
+}
+.km-retro-brand h1{ margin:0; font-size:18px; letter-spacing:0.4px; }
+.km-retro-tag { font-size:12px; color:#cfe1ff; margin-top:2px; }
+
+/* Navigation: chunky buttons for 2011 feel */
+.km-retro-nav { display:flex; align-items:center; gap:8px; }
+.km-retro-nav a {
+  background: rgba(255,255,255,0.06);
+  color:#fff;
+  padding:8px 12px;
+  border-radius:6px;
+  text-decoration:none;
+  font-weight:600;
+  font-size:13px;
+  box-shadow:0 1px 0 rgba(0,0,0,0.12);
+}
+.km-retro-nav a.btn-ghost { background:transparent; border:1px solid rgba(255,255,255,0.12); }
+.km-retro-nav .search {
+  margin-left:12px;
+  display:flex;
+  align-items:center;
+  background:var(--panel);
+  padding:6px;
+  border-radius:6px;
+}
+.km-retro-nav input[type="search"]{ border:none; outline:none; width:220px; }
+
+/* Hero: classic mirrored panels */
+.km-retro-hero { display:flex; gap:18px; padding:18px; align-items:center; background: linear-gradient(180deg, rgba(255,255,255,0.02), transparent); }
+.km-retro-hero .left { flex:1; }
+.km-retro-hero .right { width:420px; }
+
+/* Content grid with sidebars like 2011 portals */
+.km-retro-grid { display:grid; grid-template-columns: 240px 1fr 320px; gap:18px; padding:18px; }
+.km-retro-aside, .km-retro-panel { background:var(--panel); padding:12px; border-radius:8px; box-shadow:0 6px 12px var(--shadow); }
+
+/* Tiles and thumbnails */
+.km-retro-thumb { background:var(--tile); border-radius:6px; overflow:hidden; display:block; color:inherit; text-decoration:none; }
+.km-retro-thumb img { width:100%; height:140px; object-fit:cover; display:block; }
+.km-retro-thumb h4 { margin:8px; font-size:14px; }
+
+/* Small badges and retro stickers */
+.km-retro-badge { background:var(--retro-accent); padding:4px 8px; border-radius:10px; font-size:12px; color:#111; display:inline-block; }
+
+/* Channel banner style tweaks to allow GIF banner animation / mute by default */
+.channel-banner .banner-gif { width:100%; height:200px; object-fit:cover; border-bottom:4px solid rgba(0,0,0,0.04); }
+.channel-banner .banner { width:100%; height:200px; object-fit:cover; border-bottom:4px solid rgba(0,0,0,0.04); }
+
+/* Chat SMS style */
+.chat-window { background:linear-gradient(180deg,#fafafa,#f6f9fd); border-radius:6px; padding:8px; height:300px; overflow:auto; }
+.chat-line { display:flex; gap:8px; margin:8px 0; align-items:flex-start; }
+.chat-avatar { width:44px; height:44px; border-radius:50%; object-fit:cover; }
+.chat-text { background:#fff; padding:8px; border-radius:10px; box-shadow:0 1px 2px rgba(0,0,0,0.03); }
+
+/* Footer */
+.km-retro-footer { background:linear-gradient(180deg,#f3f6fb,#eef3fb); padding:18px; text-align:center; color:var(--muted); }
+
+/* 2025 reveal: a modern overlay that can be toggled with .km-reveal-2025 on body */
+.km-reveal-2025 .km-retro-header { padding:18px 28px; }
+.km-reveal-2025 .km-retro-brand h1 { font-size:20px; }
+.km-reveal-2025 .km-retro-nav input[type="search"]{ width:360px; }
+.km-reveal-2025 .km-retro-grid { grid-template-columns: 260px 1fr 360px; gap:24px; padding:26px; }
+.km-reveal-2025 .km-retro-thumb img { height:180px; }
+
+/* Responsive: collapse into single column but keep retro flavor */
+@media (max-width: 980px) {
+  .km-retro-grid { grid-template-columns: 1fr; }
+  .km-retro-hero { flex-direction:column; }
+  .km-retro-nav input[type="search"]{ width:160px; }
+  .km-retro-brand .logo { width:42px; height:42px; }
+}
+
+/* Extra decorative touches for the retro 2011 vibe */
+.km-retro-side-ad { background:linear-gradient(45deg,#fff8e1,#e8f7ff); border:1px dashed rgba(0,0,0,0.03); padding:10px; border-radius:6px; text-align:center; color:#333; }
+.km-retro-small { font-size:12px; color:var(--muted); }
+
+/* Utility */
+.hidden-xs { display:none; }
+@media(min-width:601px){ .hidden-xs{ display:inline; } }

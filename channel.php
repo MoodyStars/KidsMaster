@@ -1,5 +1,5 @@
 <?php
-// channel.php
+// channel.php (small UI updates to show Archive button for owners, and show chat messages with flags/avatars)
 session_start();
 require_once __DIR__ . '/includes/auth.php';
 require_once __DIR__ . '/api.php';
@@ -21,6 +21,11 @@ if ($currentUser) {
   $s->execute([':u'=>$currentUser['id'], ':c'=>$channel_id]);
   $is_subscribed = (bool)$s->fetch();
 }
+
+// load recent chat messages for channel (show last 100)
+$chatStmt = $pdo->prepare("SELECT id, user_name, user_avatar, country_code, message, created_at FROM chat_messages WHERE channel_id = :cid ORDER BY id DESC LIMIT 100");
+$chatStmt->execute([':cid'=>$channel_id]);
+$chatMessages = array_reverse($chatStmt->fetchAll());
 ?>
 <!doctype html>
 <html>
@@ -38,8 +43,13 @@ if ($currentUser) {
     <div class="km-brand"><a href="index.php">KidsMaster</a></div>
     <nav class="km-nav">
       <a href="index.php">Home</a> | <a href="upload.php">Upload</a>
-      <?php if ($currentUser): ?>
+      <?php if ($currentUser && $channel['owner_id'] == $currentUser['id']): ?>
         <a href="channel_edit.php?id=<?=htmlspecialchars($channel_id)?>">Edit Channel</a>
+        <form method="post" action="/ajax/channel_api.php?action=archive_channel" style="display:inline-block;">
+          <?= csrf_field_html() ?>
+          <input type="hidden" name="channel_id" value="<?=htmlspecialchars($channel_id)?>">
+          <button class="btn ghost" type="submit">Archive Channel</button>
+        </form>
       <?php endif; ?>
     </nav>
   </header>
@@ -95,16 +105,27 @@ if ($currentUser) {
       <aside class="right-col">
         <div class="panel chat-panel">
           <h4>Channel Chat (SMS style)</h4>
-          <div id="channelChatWindow" class="chat-window"></div>
+          <div id="channelChatWindow" class="chat-window">
+            <?php foreach ($chatMessages as $cm): ?>
+              <div class="chat-line">
+                <div class="chat-left">
+                  <?php if (!empty($cm['user_avatar'])): ?>
+                    <img class="chat-avatar" src="<?=htmlspecialchars($cm['user_avatar'])?>" alt="a" />
+                  <?php else: ?>
+                    <div class="chat-avatar placeholder"></div>
+                  <?php endif; ?>
+                </div>
+                <div class="chat-right">
+                  <div class="chat-text"><strong><?=htmlspecialchars($cm['user_name'])?></strong>: <?=htmlspecialchars($cm['message'])?></div>
+                  <div class="chat-meta"><?= $cm['country_code'] ? htmlspecialchars(country_code_to_emoji($cm['country_code'])) : '' ?> <small><?=htmlspecialchars($cm['created_at'])?></small></div>
+                </div>
+              </div>
+            <?php endforeach; ?>
+          </div>
 
           <div class="chat-controls">
-            <select id="chatCountryFlag">
-              <option value="us">🇺🇸 US</option>
-              <option value="gb">🇬🇧 UK</option>
-              <option value="in">🇮🇳 IN</option>
-              <option value="eg">🇪🇬 EG</option>
-            </select>
-            <button onclick="openEmojiPicker()">😊</button>
+            <select id="chatCountryFlag"></select>
+            <button class="emoji-btn" data-target="channelChatMsg">😊</button>
             <input id="channelChatMsg" placeholder="Send a message..." />
             <button id="channelSendBtn">Send</button>
           </div>
@@ -128,3 +149,12 @@ if ($currentUser) {
   </main>
 </body>
 </html>
+
+<?php
+function country_code_to_emoji($code){
+    $code = strtoupper(substr((string)$code,0,2));
+    if (strlen($code) != 2) return '';
+    $base = 0x1F1E6;
+    return mb_chr($base + ord($code[0]) - 65) . mb_chr($base + ord($code[1]) - 65);
+}
+?>

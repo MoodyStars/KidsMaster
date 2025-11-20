@@ -1,0 +1,14 @@
+/* site_extended.css - additional layout and component styles */
+.container { max-width:1200px; margin:0 auto; padding:18px; }
+.grid-3 { display:grid; grid-template-columns: 1fr 1fr 360px; gap:18px; }
+.featured-row { display:flex; gap:12px; overflow:auto; }
+.feat-card { width:200px; flex:0 0 auto; background:#fff; border-radius:8px; padding:6px; }
+.hub-grid { display:flex; gap:8px; flex-wrap:wrap; }
+.hub { display:inline-block; padding:12px 18px; border-radius:8px; background:#fff; text-decoration:none; color:#333; margin:6px; }
+.upload-progress .bar { background:#eee; height:12px; border-radius:6px; overflow:hidden; }
+.upload-progress .bar-fill { height:100%; background:var(--accent); width:0%; transition:width .2s ease; }
+.small-list { list-style:none; padding:0; margin:0; }
+.thumb-grid.small .thumb img { height:100px; object-fit:cover; }
+.thumb-grid .thumb img { height:140px; object-fit:cover; }
+.my-media-list { list-style:none; padding:0; }
+.my-media-list li { display:flex; gap:12px; align-items:center; padding:8px 0; border-bottom:1px solid #f2f2f2; }
