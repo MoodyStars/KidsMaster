@@ -1,0 +1,15 @@
+/* channel-specific styles */
+.channel-page { max-width:1200px; margin:20px auto; padding:0 12px; }
+.channel-banner { position:relative; }
+.banner, .banner-gif { width:100%; height:200px; object-fit:cover; border-radius:8px; }
+.channel-meta { display:flex; gap:16px; margin-top:-44px; padding:0 8px; align-items:flex-end; }
+.profile-pic img { width:88px; height:88px; border-radius:50%; border:4px solid #fff; object-fit:cover; }
+.avatar-placeholder { width:88px; height:88px; border-radius:50%; background:#eee; display:flex; align-items:center; justify-content:center; font-weight:700; color:#666; border:4px solid #fff; }
+.channel-meta .info h1 { margin:0; font-size:22px; }
+.channel-controls { margin-top:8px; display:flex; gap:8px; align-items:center; }
+.channel-body { display:grid; grid-template-columns: 1fr 360px; gap:18px; margin-top:18px; }
+.chat-window { height:260px; overflow:auto; padding:8px; background:#fafafa; border-radius:6px; border:1px solid #eee; }
+.chat-controls { display:flex; gap:6px; margin-top:8px; }
+.chat-controls input { flex:1; padding:6px; border-radius:6px; border:1px solid #ddd; }
+.chat-controls select, .chat-controls button { padding:6px; border-radius:6px; }
+.thumb-grid { display:grid; grid-template-columns: repeat(3,1fr); gap:12px; }
