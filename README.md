@@ -1,171 +1,180 @@
-# KidsMaster — Share your Memes & Nostalgia
+# KidsMaster
 
-KidsMaster is a lightweight PHP + MySQL scaffold for a nostalgic, family-friendly media sharing site (2011 layout vibe with a 2025 reveal). What I built so far is a multi-page prototype (Homepage, Browse, Watch, Channels scaffolds) plus a small API, a chunked upload handler, CSRF & authentication scaffolds, subscription/playlist/statistics endpoints, moderation hooks, and a Ratchet WebSocket scaffold for real-time chat. The intent was to create a practical, extendable starting platform you can harden and scale.
+KidsMaster is a nostalgic, extensible media-sharing platform inspired by classic portals (Wenoo, VidLii, ZippCast, KidsTube) with a modern "2025 reveal" option. This repository contains a full PHP + MySQL scaffold implementing a Channels 1.5 Deluxe feature set: multi-type media (video/audio/images/software/games/storage), channels with PFP/GIF banner/background/theme choices, SMS-style channel chat with emoji & country flags (WebSocket + fallback), Reddit integration stubs, live stream management (RTMP/HLS worker integration), threaded comments, uploads with resumable chunking, background encoding workers (FFmpeg), and admin tooling including an encoding jobs dashboard.
 
-This README documents what is included, how to run it locally, and practical next steps to take this prototype toward production.
+This README documents what the project includes, how to get it running locally, the main endpoints and tools, how to run the worker, and recommendations for production hardening.
 
 Table of contents
-- Overview
-- Key features implemented
-- Repo layout (important files)
+- Features
+- Repo layout
 - Requirements
-- Quick start (local)
-- Database
-- Running the WebSocket chat server
-- Uploads, thumbnails & HLS notes
-- Redis cache (optional)
-- Security & production hardening notes
-- Next steps (practical priorities)
+- Quick start (development)
+- Database migrations & schema
+- Uploads and media processing (workers)
+- WebSocket chat & Redis pub/sub
+- Admin & moderation
+- API endpoints (quick reference)
+- CI & testing
+- Deployment notes (systemd / supervisor)
+- Security & production hardening checklist
 - Contributing
 - License
 
-Overview
---------
-KidsMaster is a proof-of-concept platform for hosting videos, audio, images, software and small game artifacts, with:
-- Multi-page UI: index (home), browse, watch, channel scaffolds.
-- Lightweight API functions in PHP for listing media, comments, channels, and admin actions.
-- Secure-ish auth skeleton (registration/login), CSRF helpers and session-based user handling.
-- Chunked/resumable upload endpoint with server-side file type checks and per-user storage quota (example quota set to 512 GB).
-- Thumbnail generation (GD/Imagick); rudimentary ffmpeg snapshot for video thumbnails and an HLS-generation placeholder.
-- Subscriptions + playlists + stats collection.
-- Moderation endpoints for reports and comment removal.
-- Real-time chat scaffold via Ratchet (WebSocket) and client-side WebSocket integration with polling fallback.
-- Stubs for emoji picker and country-flag UI (integration points are provided).
-
-Key features implemented
-------------------------
-- Pages: index.php, browse.php, watch.php (UI + PHP templates)
-- API & helpers: api.php (extended), includes/auth.php, includes/csrf.php
-- Uploads: upload.php implements chunked upload, file validation, per-user quota checking and thumbnail generation
-- Chat: websockets/chat-server.php (Ratchet scaffold) + client updates in assets/js/main.js
-- DB schema: db/schema.sql (initial) + db/schema-updates.sql (subscriptions, playlists, reports, stats, storage index)
-- Frontend assets: assets/css/style.css, assets/js/main.js
-- Dev README: README-updates.md (notes on running workers, ffmpeg, etc.)
+Features
+- Channels 1.5 Deluxe: per-channel profile picture (PFP), GIF banner support, background images, theme choice (deluxe/retro/modern), channel versioning and owner controls.
+- SMS-style channel chat: emoji, country-flag metadata, avatar support. Real-time via Ratchet WebSocket server with Redis pub/sub; HTTP fallback persists to DB.
+- Upload system: client-side resumable chunking, server chunk assembly, file-type detection, thumbnail generation (GD/Imagick), quota checks (example 512GB).
+- Media processing pipeline: encoding_jobs table + worker (PHP CLI) that runs FFmpeg to generate thumbnails, HLS manifests, trims, and remixes.
+- Admin jobs dashboard: view, retry, requeue, cancel and delete encoding jobs.
+- Threaded comments, reports, moderation endpoints, and an admin moderation dashboard scaffold.
+- Community features: categories, groups, group membership, contact form, curated/special videos pages, people directory.
+- Retro 2011 theme with a 2025 reveal toggle (assets/css/retro2011.css + JS).
+- Legacy (IE7–11) compatibility layer (compat.js) and fallback assets (legacy.css) for broad support.
+- CI checks & tests: FFmpeg availability script and worker smoke test; GitHub Actions workflow example.
+- Useful tools: setup wizard, test master diagnostic page, batch upload UI, editor/remix stubs, and many AJAX endpoints.
 
 Repo layout (high-level)
-------------------------
-- index.php — homepage scaffold
-- browse.php — browse UI
-- watch.php — watch page with chat & comments
-- upload.php — chunked upload handler
-- api.php — central DB helpers + AJAX endpoints (listing, chat polling, etc.)
-- includes/
-  - auth.php — simple auth helpers (register/login)
-  - csrf.php — CSRF helpers
-- websockets/
-  - chat-server.php — Ratchet WebSocket server scaffold
+- _includes/ — bootstrap, header/footer helpers, core init
 - assets/
-  - css/style.css
-  - js/main.js
-- db/
-  - schema.sql
-  - schema-updates.sql
-- storage/ — local storage area for uploaded files (created at runtime)
+  - css/ — styles (style.css, retro2011, legacy, channel_1_5_deluxe)
+  - js/ — client-side scripts (compat, retro, channel actions, upload widget, legacy fallbacks)
+- ajax/ — AJAX endpoints (media_api.php, editor_api.php, remix_api.php, admin APIs...)
+- admin/ — admin UI (jobs dashboard)
+- workers/ — worker CLI script processing encoding_jobs
+- websockets/ — Ratchet WebSocket server scaffold
+- db/ — schema and migrations
+- storage/ — generated/served assets (uploads, hls, thumbs)
+- pages: index.php, channels.php, watch.php, videos.php, audio.php, images.php, software.php, games.php, storage.php, archive.php, community.php, etc.
+- docs/ — API reference + Postman collection
+- tests/ — CI/test scripts (ffmpeg check, worker smoke)
 - README.md — (this file)
 
 Requirements
-------------
-- PHP 8.x (or 7.4+, but 8.x recommended)
-- MySQL / MariaDB
-- Composer (for Ratchet/websocket server)
-- ffmpeg (optional but required for video thumbnail and HLS generation)
-- Optional: Redis + phpredis extension (optional caching)
-- Web server (Apache/Nginx) or PHP built-in server for development
+- PHP 8.x (recommended)
+- MySQL / MariaDB (8+ recommended)
+- Composer (to install Ratchet and other libraries)
+- FFmpeg installed on PATH (worker jobs)
+- Optional: Redis + phpredis extension (for job pub/sub and cache)
+- Webserver: Nginx/Apache or PHP built-in server for development
 
-Quick start (local)
--------------------
-1. Clone the project into your PHP webroot.
+Quick start (development)
+1. Clone the project:
+   git clone <repo> kidsmaster
+   cd kidsmaster
 
-2. Adjust DB credentials
-   - Edit api.php -> db() and set host, dbname, user and password to match your environment.
+2. Install composer dependencies (for WebSocket server):
+   composer install
 
-3. Create database and tables
-   - Import schema files:
-     - mysql -u root -p < db/schema.sql
-     - mysql -u root -p < db/schema-updates.sql
+3. Configure environment variables (or edit `_includes/init.php` DB credentials):
+   export KM_DB_HOST=127.0.0.1
+   export KM_DB_NAME=kidsmaster
+   export KM_DB_USER=km_user
+   export KM_DB_PASS=km_pass
 
-4. Install composer dependencies for WebSockets (optional)
-   - composer require cboden/ratchet
+4. Create DB and import schema:
+   - Create database and a user.
+   - Import base schema and migrations:
+     mysql -u root -p kidsmaster < db/schema.sql
+     mysql -u root -p kidsmaster < db/migrations/20251120_jobs_and_processing.sql
+     (also import other migration files in db/migrations as needed)
 
-5. Run dev server (simple):
-   - php -S 127.0.0.1:8000
-   - Open http://127.0.0.1:8000 in your browser.
+5. Start the PHP built-in server for quick dev:
+   php -S 127.0.0.1:8000
 
-6. Seed some data
-   - Manually insert a user and a channel, or use the registration endpoint to create accounts.
-   - Add a few media rows (thumbnail/file_url) to test browse/watch pages.
+6. Visit http://127.0.0.1:8000/setup.php and create an admin user with the setup wizard. This will create the default channel and seed categories.
 
-Database notes
---------------
-- The provided schema includes tables for users, channels, media, comments, chat_messages, storage_files.
-- schema-updates.sql adds subscriptions, playlists, playlist_items, reports, stats_views, and is_moderator flag for users.
-- The upload flow writes records to storage_files and media tables; ensure the storage/uploads path is writable by the web server.
+Database migrations & schema
+- Main schema file: db/schema.sql (base tables users, channels, media, comments, chat_messages, storage_files, playlists, etc.)
+- Jobs and processing migration: db/migrations/20251120_jobs_and_processing.sql (encoding_jobs table, hls_url/duration fields)
+- Channel & chat metadata migrations: db/migrations/20251119_add_channel_chat_and_archive.sql and db/migrations/20251120_channel_chat_pubsub.sql provide channels.archived, chat_messages.channel_id, country_code, user_avatar.
+- Run migrations in sequence. Back up your DB before applying changes.
 
-Running the WebSocket chat server
---------------------------------
-The Ratchet server is a separate PHP CLI process and is optional (we also keep a polling fallback).
-1. Install Ratchet:
-   - composer require cboden/ratchet
-2. Run the server:
-   - php websockets/chat-server.php
-3. Default port is 8080. Adjust the port in the file if required and update the client code accordingly.
+Uploads and media processing
+- Chunked upload endpoint: upload.php — accepts chunked uploads, assembles file, basic MIME validation and thumbnail generation.
+- Finalize endpoint: ajax/upload_finalize.php — creates media DB record referencing uploaded file.
+- Background worker: workers/worker.php — consumes Redis queue `kidsmaster:jobs` (BRPOP) or polls encoding_jobs table and runs FFmpeg for:
+  - HLS packaging (hls job)
+  - Thumbnail generation (thumbnail job)
+  - Trim operation (trim job)
+  - Remix (remix job)
+- Use `enqueue_hls` and `enqueue_thumbnail` via ajax/media_api.php to queue work.
+- Outputs are stored under `/storage/` (hls, thumbs, trims, remix) and media rows are updated with `hls_url`, `thumbnail`, `processed` flag.
 
-Note: The scaffolded chat server is minimal and broadcasts all messages to all connected clients. For production,
-implement room/channel scoping, authentication and optionally persist chat messages in Redis or the DB.
+WebSocket chat & Redis pub/sub
+- WebSocket server: websockets/chat-server.php (Ratchet) — room-aware (channel_id).
+- It broadcasts messages with metadata (user_name, user_avatar, country_code, message).
+- Production: run the WebSocket server as a supervised process and use Redis pub/sub to share messages across multiple WS instances.
+- Clients connect via KMWebSocket (compat.js) with fallback polling to `/api.php?rest=chat_poll`.
 
-Uploads, thumbnails & HLS
--------------------------
-- upload.php supports chunked uploads. Client should send chunk parts named `chunk` with parameters upload_id, chunk_index, total_chunks, filename.
-- Server detects basic MIME type and classifies file as video/audio/image/software/storage.
-- Images: thumbnails generated via GD or Imagick.
-- Video: script uses ffmpeg to snapshot a frame (if ffmpeg present).
-- HLS: api_generate_hls() is a placeholder that runs ffmpeg to create an m3u8 + segments; you should run heavy ffmpeg jobs in a background worker system (queue) rather than in the web request thread.
-- Storage quotas: example quota is 512GB per user (549,755,813,888 bytes). Adjust or implement plans/limits as needed.
+Admin & moderation
+- Admin Jobs Dashboard: admin/jobs.php + ajax/admin_jobs_api.php — view encoding_jobs, retry, requeue, cancel, delete.
+- Moderation flows: comment reports, archive/restore channels, delete comments; moderation checks are performed server-side.
+- Developer utilities: testmaster.php (diagnostics), user_fix.php (recalc storage).
 
-Redis cache (optional)
-----------------------
-- api.php contains a cache() helper that attempts to connect to Redis (phpredis extension).
-- If Redis is available, use it for frequently-read endpoints (featured lists, channel lists) to reduce DB load.
-- Remember to add cache invalidation when content changes.
+API endpoints (quick reference)
+- ajax/media_api.php — media actions: toggle_privacy, delete, enqueue_hls, enqueue_thumbnail, edit_meta, playlist actions.
+- ajax/editor_api.php — enqueue 'trim' jobs.
+- ajax/remix_api.php — enqueue 'remix' jobs.
+- ajax/admin_jobs_api.php — admin job management.
+- ajax/channel_actions.php — subscribe/unsubscribe, chat_send fallback, archive/restore channel, reddit stub.
+- comment_post.php — comments posting, reporting, deletion.
+- analytics.php — record_view and generic events.
+- api.php — listing, search and small AJAX actions for channels/search.
+- See docs/API-endpoints.md and docs/postman_collection.json for detailed examples.
 
-Security & production hardening (short checklist)
-------------------------------------------------
-- Use HTTPS and set secure session cookie flags (Secure, HttpOnly, SameSite).
-- Harden sessions (session cookie lifetime, session_regenerate_id on login).
-- Implement email verification, password reset, rate limiting and login throttling.
-- Validate and sanitize all user input server-side; use proper escaping for HTML output.
-- Serve uploaded media from a dedicated domain or signed URLs rather than directly from the webroot if you need access control.
-- Queue heavy work (thumbnail generation, ffmpeg/HLS transcoding) into a worker process (RabbitMQ/Redis + worker).
-- Implement moderator role checks before deletion/report actions.
-- Run ffmpeg and other system tools under a limited user and in a rate-limited/queued context.
+CI & testing
+- tests/ci_check_ffmpeg.sh — verifies FFmpeg presence.
+- tests/ci_worker_smoke.sh — inserts a test encoding job to validate DB insertion.
+- Example GitHub Actions workflow: .github/workflows/ci.yml runs FFmpeg check and worker smoke test (using a MySQL service).
+- Recommended: extend CI to lint PHP, run static analysis, and run integration tests with a seeded DB and Redis.
 
-Next steps — practical priorities
----------------------------------
-I already added the scaffolds for auth, CSRF, chunked uploads, subscriptions/playlists, moderation hooks and a WebSocket server. The most valuable next steps to make this production-ready are:
-1. Implement full authentication flows (signup forms, email verification, password reset) and rate-limiting.
-2. Move media processing to background workers (thumbnail + HLS + encoding) and add a job queue.
-3. Harden access to upload endpoints and store files behind signed URLs / CDN.
-4. Replace the broadcast-only WebSocket server with a room-aware, authenticated server and persist chat history in Redis or DB.
-5. Add moderation UI and policies (age gating for NSFW categories, content takedown flow).
-If you'd like, I can generate the full signup/login pages (with CSRF integration), a resumable JS upload widget and a worker example next.
+Deployment notes (systemd / supervisor)
+- Two recommended ways to supervise the worker:
+  - systemd unit: systemd/kidsmaster-worker.service — install to `/etc/systemd/system/` and enable:
+    sudo systemctl daemon-reload
+    sudo systemctl enable --now kidsmaster-worker.service
+  - Supervisor config: supervisor/kidsmaster-worker.conf — add to `/etc/supervisor/conf.d/`, then reload supervisor.
+- Ensure worker runs as the same user that has access to storage files (e.g., `www-data`).
+- If using WebSocket server, supervise websockets/chat-server.php similarly.
+
+Security & production hardening checklist
+- Use HTTPS for all web traffic; set session cookie flags: Secure, HttpOnly, SameSite.
+- Implement rate limiting on login, signup, upload and comment endpoints.
+- Add email verification and password reset flows for authentication (scaffold exists; complete before production).
+- Scan uploaded files (virus scanning) and validate MIME types strictly. Consider processing uploads in a sandboxed worker (not in the web worker).
+- Serve media via a CDN or signed URLs; avoid serving raw uploads from webroot for private content.
+- Move heavy jobs (FFmpeg processing) to dedicated worker nodes; keep web servers stateless.
+- Use Redis for caching and pub/sub across multiple web/worker nodes.
+- Add moderation dashboards and roles; log moderation actions.
+
+Unit tests & CI
+- Included scripts: tests/ci_check_ffmpeg.sh and tests/ci_worker_smoke.sh.
+- Recommended tests to add:
+  - Unit tests for API endpoints (PHP unit tests with a test DB).
+  - Integration test for upload flow (chunked upload + finalize).
+  - Worker unit tests (mock FFmpeg by using small sample files or a stub wrapper).
+- Example GitHub Actions workflow is provided (.github/workflows/ci.yml).
+
+Postman & API docs
+- docs/postman_collection.json includes a few sample requests (toggle privacy, enqueue hls, trim).
+- docs/API-endpoints.md summarizes AJAX endpoints and expected payloads/response formats.
+- Consider exporting a full OpenAPI/Swagger doc for machine-readable API docs.
+
+Developer tools & notes
+- Use `testmaster.php` for environment diagnostics and quick SQL for dev.
+- `setup.php` is a one-time setup wizard to create an admin account and seed categories. It creates a storage/.setup_done lock to prevent rerun.
+- The retro theme (assets/css/retro2011.css + assets/js/retro2011.js) is optional; you can toggle per channel or site-wide.
 
 Contributing
-------------
-Contributions are welcome. Open an issue describing your change or a PR targeting a feature branch. Major changes (auth/security, storage architecture, streaming infra) should be proposed with an implementation plan so we can discuss deployment considerations.
+- Contributions are welcome. Please open issues for feature requests and bugs.
+- For code changes: fork, create a topic branch, and open a pull request. Provide migrations for schema changes and tests for new features.
 
 License
--------
-This scaffold is provided as-is for prototyping and educational purposes. No license file is included by default — add a LICENSE (MIT or other) if you want to open source this project.
+- No license file is included by default. Add a LICENSE (for example MIT) if you intend to open source.
 
 Acknowledgements
-----------------
-This scaffold draws on common open-source tools: PHP, PDO/MySQL, Ratchet (WebSockets), ffmpeg, GD/Imagick, and optional Redis. It also follows the spirit of retro video-sharing sites while adding modern, extensible building blocks.
+- This scaffold reuses common open-source tools: PHP, PDO, Ratchet (WebSocket), FFmpeg, Redis, GD/Imagick.
 
 ---
 
-If you want, I will now:
-- Generate the signup/login pages with CSRF fields and server-side validation, plus unit-testable endpoints; or
-- Produce a resumable upload JavaScript widget (Dropzone-like) wired to upload.php with progress UI; or
-- Replace the WebSocket scaffold with an authenticated, room-aware server using Redis pub/sub.
-
-Tell me which you prefer and I’ll generate the files and commands next.  
+I packaged a complete README that documents the Channels 1.5 Deluxe features, installs, the worker/encoding architecture, admin workflows, and CI checks. Next I can produce either (A) more comprehensive API OpenAPI/Swagger docs, (B) a full Postman collection with auth flows included, or (C) automated database migration scripts (combined and idempotent) for production. Which do you want next?
